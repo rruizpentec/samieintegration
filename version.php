@@ -22,9 +22,11 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$plugin->version = 2016040700;  // YYYYMMDDHH (year, month, day, 24-hr time).
-$plugin->requires = 2015051100; // YYYYMMDDHH (This is the release version for Moodle 2.9).
+$plugin->version = 2016063000;  // YYYYMMDDHH (year, month, day, 24-hr time).
+$plugin->requires = 2015050500; // YYYYMMDDHH (I tried with 2015110900 for 2.9.3 but doesn't work).
+                                // Default plugins has 2015050500 after installation.
 $plugin->component = 'enrol_sieintegration';
+$plugin->dependencies = array('local_samieconfig' => 2016062200);
 $plugin->maturity = MATURITY_STABLE;
 $plugin->cron = 0;
-$plugin->release = 'v1.0-r1';
+$plugin->release = 'v1.0.0';
