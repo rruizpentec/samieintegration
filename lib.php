@@ -19,7 +19,7 @@
  *
  * This plugin synchronises enrolment and roles with external database table.
  *
- * @package    enrol_sieintegration
+ * @package    enrol_samieintegration
  * @copyright  2010 Petr Skoda {@link http://skodak.org}
  * @copyright  2013 Iñaki Arenaza {@link http://www.mondragon.edu/}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -28,13 +28,13 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * SIE Integration plugin implementation.
+ * SAMIE Integration plugin implementation.
  * @author  Blanquers - based on code by Petr Skoda - based on code by Martin Dougiamas, Martin Langhoff and others
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class enrol_sieintegration_plugin extends enrol_plugin {
+class enrol_samieintegration_plugin extends enrol_plugin {
     private $conn;
-    private $siemode;
+    private $samiemode;
     private $sepealuid;
     private $sepetutid;
     private $sepeadmid;
@@ -48,7 +48,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
         $this->errorsfound = 0;
         $this->conn = $this->db_init();
         if ($this->conn) {
-            $this->siemode = $this->get_sie_config('GEN_MODALIDAD', '');
+            $this->samiemode = $this->get_samie_config('GEN_MODALIDAD', '');
             if ($this->is_sepe_mode()) {
                 $this->prepare_sepe_users();
             }
@@ -60,15 +60,15 @@ class enrol_sieintegration_plugin extends enrol_plugin {
                 if (substr($this->baseurl, -1, 1) != '/') {
                     $this->baseurl .= '/';
                 }
-                $this->send_access_data_to_sie();
-                $this->send_participants_data_to_sie();
-                $this->send_usage_data_to_sie();
+                $this->send_access_data_to_samie();
+                $this->send_participants_data_to_samie();
+                $this->send_usage_data_to_samie();
             } else {
-                echo 'SIE url not found in config';
+                echo 'SAMIE url not found in config';
             }
         } else {
             $this->errorsfound++;
-            echo 'Cannot connect to SIE database\n';
+            echo 'Cannot connect to SAMIE database\n';
         }
         if ($this->errorsfound > 0) {
             echo "There were ".$this->errorsfound." error(s) found.";
@@ -83,7 +83,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
      * @return bool True if SEPE mode is active
      */
     private function is_sepe_mode() {
-        return ($this->siemode == 'A' || $this->siemode == 'S');
+        return ($this->samiemode == 'A' || $this->samiemode == 'S');
     }
 
     /**
@@ -119,12 +119,12 @@ class enrol_sieintegration_plugin extends enrol_plugin {
      * @return null|ADONewConnection
      */
     private function db_init() {
-        $servidorsie = $this->get_config('dbhost');
-        $dbnombresie = $this->get_config('dbname');
-        $dbusuariosie = $this->get_config('dbuser');
-        $dbcontrasenasie = $this->get_config('dbpass');
-        $conn = new PDO("mysql:host=$servidorsie;dbname=$dbnombresie", "$dbusuariosie", "$dbcontrasenasie",
-                array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'utf8'")); // Conexion del SIE.
+        $servidorsamie = $this->get_config('dbhost');
+        $dbnombresamie = $this->get_config('dbname');
+        $dbusuariosamie = $this->get_config('dbuser');
+        $dbcontrasenasamie = $this->get_config('dbpass');
+        $conn = new PDO("mysql:host=$servidorsamie;dbname=$dbnombresamie", "$dbusuariosamie", "$dbcontrasenasamie",
+                array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'utf8'")); // Conexion del SAMIE.
         return $conn;
     }
 
@@ -164,7 +164,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
             $this->update_default_course_sections($mdlcourse->id, 0);
             // Update single section name.
             $this->insert_course_section($mdlcourse, $traininggroup['afg_denominacion'], '', 0);
-            // Update SIE database to link both courses.
+            // Update SAMIE database to link both courses.
             $this->update_afg_link($traininggroup['afg_id'], $mdlcourse->id);
         } else {
             $this->errorsfound++;
@@ -223,36 +223,36 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Updates the link between a SIE enrolment and a Moodle object
+     * Updates the link between a SAMIE enrolment and a Moodle object
      *
-     * @param int $sieenrolid SIE enrolment ID
+     * @param int $samieenrolid SAMIE enrolment ID
      * @param int $lmsid Moodle object ID
-     * @param string $type SIE enrolment type
+     * @param string $type SAMIE enrolment type
      * @result bool Operation result
      */
-    private function update_sieenrol_link($sieenrolid, $lmsid, $type) {
+    private function update_samieenrol_link($samieenrolid, $lmsid, $type) {
         $sql = '';
-        if ($sieenrolid > 0) {
+        if ($samieenrolid > 0) {
             switch($type) {
                 // For students in:.
                 case 'CNCP': // Professional certification courses.
-                    $sql = "UPDATE st_acciones_alumnos_especialidades SET aae_id_lms = ".$lmsid." WHERE aae_id = ".$sieenrolid;
+                    $sql = "UPDATE st_acciones_alumnos_especialidades SET aae_id_lms = ".$lmsid." WHERE aae_id = ".$samieenrolid;
                     break;
                 case 'PROPIA': // Ordinary courses.
-                    $sql = "UPDATE st_acciones_alumnos SET aal_id_lms = ".$lmsid." WHERE aal_id = ".$sieenrolid;
+                    $sql = "UPDATE st_acciones_alumnos SET aal_id_lms = ".$lmsid." WHERE aal_id = ".$samieenrolid;
                     break;
                 // For teachers in:.
                 case 'CNCP_T': // Professional certification teachers.
-                    $sql = "UPDATE st_acciones_especialidades_profesores SET aep_id_lms = ".$lmsid." WHERE aep_id = ".$sieenrolid;
+                    $sql = "UPDATE st_acciones_especialidades_profesores SET aep_id_lms = ".$lmsid." WHERE aep_id = ".$samieenrolid;
                     break;
                 case 'TUTOR': // Tutors (both).
-                    $sql = "UPDATE st_tutores_afg SET tag_id_lms = ".$lmsid." WHERE tag_id = ".$sieenrolid;
+                    $sql = "UPDATE st_tutores_afg SET tag_id_lms = ".$lmsid." WHERE tag_id = ".$samieenrolid;
                     break;
                 case 'FORMADOR_ESPECIALIDADES': // Professional certification trainer.
-                    $sql = "UPDATE st_acciones_especialidades SET aes_id_formador_lms = ".$lmsid." WHERE aes_id = ".$sieenrolid;
+                    $sql = "UPDATE st_acciones_especialidades SET aes_id_formador_lms = ".$lmsid." WHERE aes_id = ".$samieenrolid;
                     break;
                 case 'FORMADOR_PROPIAS': // Ordinary courses trainer.
-                    $sql = "UPDATE st_accionesformativas_grupos SET afg_id_formador_lms = ".$lmsid." WHERE afg_id = ".$sieenrolid;
+                    $sql = "UPDATE st_accionesformativas_grupos SET afg_id_formador_lms = ".$lmsid." WHERE afg_id = ".$samieenrolid;
                     break;
             }
             return $this->update_sql($sql);
@@ -262,9 +262,9 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Updates the link between a SIE user and a Moodle user
+     * Updates the link between a SAMIE user and a Moodle user
      *
-     * @param int $perid SIE user ID
+     * @param int $perid SAMIE user ID
      * @param int $lmsid Moodle user ID
      * @result bool Operation result
      */
@@ -274,7 +274,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Creates a SIE training group as a Moodle course category
+     * Creates a SAMIE training group as a Moodle course category
      *
      * @param object $traininggroup Training group
      */
@@ -288,7 +288,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
         $subcategory->depth = 2;
         // Create the subcategory.
         $subcategory = coursecat::create($subcategory);
-        // Update the link between SIE and Moodle objects.
+        // Update the link between SAMIE and Moodle objects.
         if ($this->update_afg_link($traininggroup['afg_id'], $subcategory->id)) {
             echo $subcategory->name."\n";
         } else {
@@ -298,7 +298,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Creates a SIE training activity specialty as a Moodle course
+     * Creates a SAMIE training activity specialty as a Moodle course
      *
      * @param object $module Training activity specialty
      */
@@ -320,7 +320,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
 
             $mdlcourse = create_course($newcourse);
             $this->update_default_course_sections($mdlcourse->id, 0);
-            // Update link between SIE and Moodle.
+            // Update link between SAMIE and Moodle.
             $this->update_aes_link($module['aes_id'], $mdlcourse->id);
 
             // Create module sections. Especialidades de los módulos.
@@ -419,7 +419,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Forces SIE users synchronization with Moodle users.
+     * Forces SAMIE users synchronization with Moodle users.
      */
     private function sync_users() {
         global $CFG;
@@ -444,17 +444,17 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * This method is similar to enrol_plugin::enrol_user, but it updates synchronization info on SIE platform
+     * This method is similar to enrol_plugin::enrol_user, but it updates synchronization info on SAMIE platform
      *
      * @param int $roleid Role ID
      * @param int $courseid Course ID
      * @param int $userid User ID
      * @param int $enrolid Enrol ID
-     * @param string $sieenroltype Enrolment Type in SIE
-     * @param int $sieenrolid Enrol ID in SIE
+     * @param string $samieenroltype Enrolment Type in SAMIE
+     * @param int $samieenrolid Enrol ID in SAMIE
      * @return User enrolment ID (or false if it fails)
      */
-    private function sie_enrol_user($roleid, $courseid, $userid, $enrolid, $sieenroltype, $sieenrolid) {
+    private function samie_enrol_user($roleid, $courseid, $userid, $enrolid, $samieenroltype, $samieenrolid) {
         global $DB;
         $instance = new stdClass();
         $instance->id = $enrolid;
@@ -464,13 +464,13 @@ class enrol_sieintegration_plugin extends enrol_plugin {
         try {
             $this->enrol_user($instance, $userid, $roleid, (new DateTime())->getTimestamp(), 0);
             if ($lmsid = $DB->get_field('user_enrolments', 'id', array('userid' => $userid, 'enrolid' => $enrolid))) {
-                if ($sieenroltype == "SEPE") {
+                if ($samieenroltype == "SEPE") {
                     if (!$this->update_sepe_enrol_link($userid, $courseid, $roleid)) {
                         $this->errorsfound++;
                         echo 'Cannot link enrolment SEPE User('.$userid.') Course('.$courseid.')';
                     }
                 } else {
-                    if (!$this->update_sieenrol_link($sieenrolid, $lmsid, $sieenroltype)) {
+                    if (!$this->update_samieenrol_link($samieenrolid, $lmsid, $samieenroltype)) {
                         $this->errorsfound++;
                         echo 'Cannot link enrolment User('.$userid.') Course('.$courseid.')';
                     }
@@ -489,13 +489,13 @@ class enrol_sieintegration_plugin extends enrol_plugin {
      */
     private function get_enrol_users_sql() {
         // Student section (rolid = 5).
-        $sql = " SELECT per_id_lms, aes_id_lms, 'CNCP' as TIPO, aae_id AS sieenrolid, 5 AS rolid
+        $sql = " SELECT per_id_lms, aes_id_lms, 'CNCP' as TIPO, aae_id AS samieenrolid, 5 AS rolid
                    FROM ((st_alumnos INNER JOIN st_personas ON alu_per_id = per_id)
              INNER JOIN st_acciones_alumnos_especialidades ON alu_id = aae_alu_id)
              INNER JOIN st_acciones_especialidades ON aes_afg_id = aae_afg_id AND aes_especialidad_id = aae_esp_id
                   WHERE per_id_lms IS NOT NULL AND aes_id_lms IS NOT NULL AND aae_id_lms IS NULL ";
 
-        $sql .= " UNION SELECT per_id_lms, afg_id_lms, 'PROPIA', aal_id AS sieenrolid, 5 AS rolid
+        $sql .= " UNION SELECT per_id_lms, afg_id_lms, 'PROPIA', aal_id AS samieenrolid, 5 AS rolid
                           FROM ((st_alumnos INNER JOIN st_personas ON alu_per_id = per_id)
                     INNER JOIN st_acciones_alumnos ON alu_id = aal_alu_id)
                     INNER JOIN st_accionesformativas_grupos ON afg_id = aal_afg_id
@@ -503,25 +503,25 @@ class enrol_sieintegration_plugin extends enrol_plugin {
                          WHERE per_id_lms IS NOT NULL AND afg_id_lms IS NOT NULL AND afa_es_cncp = 0 AND aal_id_lms IS NULL ";
 
         // Teachers section (rolid = 3).
-        $sql .= " UNION SELECT per_id_lms, aes_id_lms, 'CNCP_T', aep_id AS sieenrolid, 3 AS rolid
+        $sql .= " UNION SELECT per_id_lms, aes_id_lms, 'CNCP_T', aep_id AS samieenrolid, 3 AS rolid
                     FROM ((st_profesores INNER JOIN st_personas ON pro_per_id = per_id)
               INNER JOIN st_acciones_especialidades_profesores ON pro_id = aep_pro_id)
               INNER JOIN st_acciones_especialidades ON aep_aes_id = aes_id
                    WHERE per_id_lms IS NOT NULL AND aes_id_lms IS NOT NULL AND aep_id_lms IS NULL ";
 
-        $sql .= " UNION SELECT per_id_lms, afg_id_lms, 'TUTOR', tag_id AS sieenrolid, 3 AS rolid
+        $sql .= " UNION SELECT per_id_lms, afg_id_lms, 'TUTOR', tag_id AS samieenrolid, 3 AS rolid
                           FROM ((st_tutores_afg INNER JOIN st_profesores ON pro_id = tag_pro_id)
                     INNER JOIN st_personas ON per_id = pro_per_id)
                     INNER JOIN st_accionesformativas_grupos ON afg_id = tag_afg_id
                          WHERE per_id_lms IS NOT NULL AND afg_id_lms IS NOT NULL AND tag_id_lms IS NULL
-                  UNION SELECT per_id_lms, aes_id_lms, 'FORMADOR_ESPECIALIDADES', aes_id AS sieenrolid, 3 AS rolid
+                  UNION SELECT per_id_lms, aes_id_lms, 'FORMADOR_ESPECIALIDADES', aes_id AS samieenrolid, 3 AS rolid
                           FROM st_acciones_especialidades
                     INNER JOIN st_accionesformativas_grupos ON afg_id = aes_afg_id
                     INNER JOIN st_profesores ON pro_id = afg_id_formador
                     INNER JOIN st_personas ON per_id = pro_per_id
                     INNER JOIN st_accionesformativas_acciones ON afa_id = afg_afa_id
                          WHERE afa_es_cncp = 1 AND per_id_lms IS NOT NULL AND aes_id_lms IS NOT NULL AND aes_id_formador_lms IS NULL
-                  UNION SELECT per_id_lms, afg_id_lms, 'FORMADOR_PROPIAS', afg_id AS sieenrolid, 3 AS rolid
+                  UNION SELECT per_id_lms, afg_id_lms, 'FORMADOR_PROPIAS', afg_id AS samieenrolid, 3 AS rolid
                           FROM st_accionesformativas_grupos
                     INNER JOIN st_profesores ON pro_id = afg_id_formador
                     INNER JOIN st_personas ON per_id = pro_per_id
@@ -532,7 +532,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
         if ($this->is_sepe_mode()) {
             // SEPE student user.
             if ($sepealuid = $this->get_lms_userid_by_username('sepe_alu')) {
-                $sql .= " UNION SELECT ".$sepealuid." AS per_id_lms, aes_id_lms, 'SEPE', 0 AS sieenrolid, 5 AS rolid
+                $sql .= " UNION SELECT ".$sepealuid." AS per_id_lms, aes_id_lms, 'SEPE', 0 AS samieenrolid, 5 AS rolid
                                   FROM st_acciones_especialidades
                              LEFT JOIN st_matriculas_sepe ON mas_per_id_lms = ".$sepealuid." AND mas_aes_id_lms = aes_id_lms
                                        AND mas_rolid = 5
@@ -540,7 +540,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
             }
             // SEPE teacher user.
             if ($sepetutid = $this->get_lms_userid_by_username('sepe_tut')) {
-                $sql .= " UNION SELECT ".$sepetutid." AS per_id_lms, aes_id_lms, 'SEPE', 0 AS sieenrolid, 3 AS rolid
+                $sql .= " UNION SELECT ".$sepetutid." AS per_id_lms, aes_id_lms, 'SEPE', 0 AS samieenrolid, 3 AS rolid
                                   FROM st_acciones_especialidades
                              LEFT JOIN st_matriculas_sepe ON mas_per_id_lms = ".$sepetutid." AND mas_aes_id_lms = aes_id_lms
                                        AND mas_rolid = 3
@@ -548,7 +548,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
             }
             // SEPE admin user.
             if ($sepeadminid = $this->get_lms_userid_by_username('sepe_adm')) {
-                $sql .= " UNION SELECT ".$sepeadminid." AS per_id_lms, aes_id_lms, 'SEPE', 0 AS sieenrolid, 1 AS rolid
+                $sql .= " UNION SELECT ".$sepeadminid." AS per_id_lms, aes_id_lms, 'SEPE', 0 AS samieenrolid, 1 AS rolid
                                  FROM st_acciones_especialidades
                             LEFT JOIN st_matriculas_sepe ON mas_per_id_lms = ".$sepeadminid." AND mas_aes_id_lms = aes_id_lms
                                       AND mas_rolid = 1
@@ -561,7 +561,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Forces SIE users enrolments synchronization  with Moodle enrolments (It does not create new courses).
+     * Forces SAMIE users enrolments synchronization  with Moodle enrolments (It does not create new courses).
      */
     private function sync_enrolments() {
         global $DB;
@@ -586,7 +586,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
                     }
                     $coursecontext = context_course::instance($enrol['aes_id_lms']);
                     // We will use 'self' enrolment type.
-                    $enrolid = $DB->get_field('enrol', 'id', array('courseid' => $enrol['aes_id_lms'], 'enrol' => 'self'),
+                    $enrolid = $DB->get_field('enrol', 'id', array('courseid' => $enrol['aes_id_lms'], 'enrol' => 'manual'),
                             IGNORE_MULTIPLE);
                 }
             } catch (Exception $ex) {
@@ -596,8 +596,8 @@ class enrol_sieintegration_plugin extends enrol_plugin {
             try {
                 // If we got a valid context (course exists, etc...) continue the process.
                 if ($coursecontext) {
-                    $lmsid = $this->sie_enrol_user($enrol['rolid'], $enrol['aes_id_lms'], $enrol['per_id_lms'], $enrolid,
-                            $enrol['TIPO'], $enrol['sieenrolid']);
+                    $lmsid = $this->samie_enrol_user($enrol['rolid'], $enrol['aes_id_lms'], $enrol['per_id_lms'], $enrolid,
+                            $enrol['TIPO'], $enrol['samieenrolid']);
                     if ($lmsid) {
                         $counter++;
                     }
@@ -666,29 +666,15 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Forces individual SIE user synchronization with Moodle user.
+     * Forces individual SAMIE user synchronization with Moodle user.
      *
      * @param array $user User data
      * @return int Moodle userid (or null if it fails)
      */
     private function sync_user($user) {
         global $CFG, $DB;
-        $password = $user['per_id_numero'];
-        $options = ['cost' => 4];
-        $phpver = floatval(substr(phpversion(), 0, 3));
-        // Comprobar version PHP .
-        if ($phpver > 5.4) {
-            // Si es version de php 5.5 .
-            if (isset($CFG->passwordsaltmain)) {
-                $password = password_hash($password.$CFG->passwordsaltmain, PASSWORD_BCRYPT, $options);
-            } else {
-                $password = password_hash($password, PASSWORD_BCRYPT, $options);
-            }
-        } else {
-            // Version php 5.4 .
-            $salt = uniqid(mt_rand(), true);
-            $password = crypt($password, '$2y$12$'.$salt.'$');
-        }
+        // Utilizo la misma contraseña que tengo almacenada y codificada en SAMIE.
+        $password = $user['per_password'];
 
         try {
             $userid = $this->get_lms_userid_by_username($user['per_username']);
@@ -707,7 +693,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
                 $userid = $DB->insert_record('user', $moodleuser);
                 $this->update_user_link($user['per_id'], $userid);
             }
-            // Update the link between SIE and Moodle objects.
+            // Update the link between SAMIE and Moodle objects.
         } catch (Exception $ex) {
             echo 'Exception on sync_user: '.$ex;
         }
@@ -715,7 +701,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Prepares the 3 SEPE auxiliary users creating them on Moodle and synchronizing with SIE platform
+     * Prepares the 3 SEPE auxiliary users creating them on Moodle and synchronizing with SAMIE platform
      */
     private function prepare_sepe_users () {
         global $sepealuid, $sepetutid, $sepeadmid;
@@ -745,7 +731,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
      * Sends a POST request to an url passing some data and an action to process the data.
      *
      * @param string $action Action to perform
-     * @param object $data Data to send_access_data_to_sie
+     * @param object $data Data to send_access_data_to_samie
      * @param string $url URL to send data to
      * @result bool Operation result
      */
@@ -797,12 +783,12 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Sends database records to SIE platform to perform an action
+     * Sends database records to SAMIE platform to perform an action
      * @param string $sql SQL statement to get the records
-     * @param stirng $action Action to perform on SIE platform
+     * @param stirng $action Action to perform on SAMIE platform
      * @return bool Operation result
      */
-    private function send_sql_data_to_sie($sql, $action) {
+    private function send_sql_data_to_samie($sql, $action) {
         global $DB;
         $datarecoveredfrommoodle = $DB->get_records_sql($sql);
         $datatosend = '';
@@ -822,11 +808,11 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Sends access statistics to SIE platform
+     * Sends access statistics to SAMIE platform
      */
-    private function send_access_data_to_sie() {
+    private function send_access_data_to_samie() {
         echo "Updating access data...";
-        $pluginconfigobject = get_config('enrol_sieintegration');
+        $pluginconfigobject = get_config('enrol_samieintegration');
         $sqllastdata = "";
         if (isset($pluginconfigobject->jobLastSendaccessDataOKRun)) {
             $sqllastdata = " AND FROM_UNIXTIME(timecreated) > '" .$pluginconfigobject->jobLastSendaccessDataOKRun. "' ";
@@ -849,18 +835,18 @@ class enrol_sieintegration_plugin extends enrol_plugin {
                    GROUP BY courseid, hora, dia ";
         $sql = "SELECT courseid, hora, SUM(participantes) AS accesos FROM (".$subquery.") DATA GROUP BY courseid, hora";
         $action = 'access';
-        if ($this->send_sql_data_to_sie($sql, $action)) {
-            set_config('jobLastSend'. $action . 'DataOKRun', date('Y-m-d H:i:s'), 'enrol_sieintegration');
+        if ($this->send_sql_data_to_samie($sql, $action)) {
+            set_config('jobLastSend'. $action . 'DataOKRun', date('Y-m-d H:i:s'), 'enrol_samieintegration');
         }
         echo "done\n";
     }
 
     /**
-     * Sends participants statistics to SIE platform
+     * Sends participants statistics to SAMIE platform
      */
-    private function send_participants_data_to_sie() {
+    private function send_participants_data_to_samie() {
         echo "Updating participation data...";
-        $pluginconfigobject = get_config('enrol_sieintegration');
+        $pluginconfigobject = get_config('enrol_samieintegration');
         $sqllastdata = "";
         if (isset($pluginconfigobject->jobLastSendparticipantesDataOKRun)) {
             $sqllastdata = " AND FROM_UNIXTIME(timecreated) > '" .$pluginconfigobject->jobLastSendparticipantesDataOKRun. "' ";
@@ -879,16 +865,16 @@ class enrol_sieintegration_plugin extends enrol_plugin {
                                               AND {enrol}.courseid = {logstore_standard_log}.courseid)
                GROUP BY courseid, hora ";
         $action = "participantes";
-        if ($this->send_sql_data_to_sie($sql, $action)) {
-            set_config('jobLastSend'. $action . 'DataOKRun', date('Y-m-d H:i:s'), 'enrol_sieintegration');
+        if ($this->send_sql_data_to_samie($sql, $action)) {
+            set_config('jobLastSend'. $action . 'DataOKRun', date('Y-m-d H:i:s'), 'enrol_samieintegration');
         }
         echo "done\n";
     }
 
     /**
-     * Sends usage statistics to SIE platform
+     * Sends usage statistics to SAMIE platform
      */
-    private function send_usage_data_to_sie() {
+    private function send_usage_data_to_samie() {
         global $CFG;
         echo "Updating usage data...";
         $action = "use";
@@ -896,7 +882,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
         if ($usedata != false) {
             $url = $this->baseurl.'reportdataimporter.php';
             if ($this->call_curl($action, $usedata, $url)) {
-                set_config('jobLastSend'. $action . 'DataOKRun', date('Y-m-d H:i:s'), 'enrol_sieintegration');
+                set_config('jobLastSend'. $action . 'DataOKRun', date('Y-m-d H:i:s'), 'enrol_samieintegration');
             } else {
                 echo "with errors\n";
             }
@@ -1002,7 +988,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
      * @return string SQL statistics statement
      */
     private function get_usage_data_sql() {
-        $pluginconfigobject = get_config('enrol_sieintegration');
+        $pluginconfigobject = get_config('enrol_samieintegration');
         $sqllastdata = "";
         if (isset($pluginconfigobject->jobLastSenduseDataOKRun)) {
             $sqllastdata = " AND FROM_UNIXTIME(timecreated) > '" .$pluginconfigobject->jobLastSenduseDataOKRun. "' ";
@@ -1024,9 +1010,9 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Prepare usage statistics in order to send to SIE platform
+     * Prepare usage statistics in order to send to SAMIE platform
      *
-     * @return string Usage statistics data with SIE platform required format
+     * @return string Usage statistics data with SAMIE platform required format
      */
     private function get_usage_data() {
         $result = "";
@@ -1069,14 +1055,14 @@ class enrol_sieintegration_plugin extends enrol_plugin {
      * @return param value
      */
     public function get_config($paramname, $default = "") {
-        return get_config('package_sie', $paramname, $default);
+        return get_config('package_samie', $paramname, $default);
     }
 
     /**
-     * Executes an SQL statement to get records from SIE platform database
+     * Executes an SQL statement to get records from SAMIE platform database
      *
      * @param string $sql SQL statement
-     * @return array Records from SIE platform database (or null if it fails)
+     * @return array Records from SAMIE platform database (or null if it fails)
      */
     private function get_records_sql($sql) {
         $stmt = $this->conn->prepare($sql);
@@ -1090,7 +1076,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Executes an INSERT SQL statement in SIE platform database
+     * Executes an INSERT SQL statement in SAMIE platform database
      *
      * @param string $sql SQL statement
      * @return bool Operation result
@@ -1105,7 +1091,7 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Executes an INSERT SQL statement in SIE platform database
+     * Executes an INSERT SQL statement in SAMIE platform database
      *
      * @param string $sql SQL statement
      * @return bool Operation result
@@ -1116,13 +1102,13 @@ class enrol_sieintegration_plugin extends enrol_plugin {
     }
 
     /**
-     * Gets a SIE platform configuration parameter value
+     * Gets a SAMIE platform configuration parameter value
      *
      * @param string $paramname Parameter name
      * @param string $default Default value to return if parameter doesn't exists
      * @return string Parameter value
      */
-    private function get_sie_config($paramname, $default = '') {
+    private function get_samie_config($paramname, $default = '') {
         try {
             $sql = "SELECT glc_value FROM st_globalconf WHERE glc_code = '".$paramname."'";
             $stmt = $this->conn->prepare($sql);

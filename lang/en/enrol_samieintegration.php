@@ -15,11 +15,11 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Strings for component 'enrol_sieintegration', language 'en'.
+ * Strings for component 'enrol_samieintegration', language 'en'.
  *
- * @package   enrol_sieintegration
+ * @package   enrol_samieintegration
  * @copyright 1999 onwards Martin Dougiamas  {@link http://moodle.com}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['pluginname'] = 'Integracion SIE';
+$string['pluginname'] = 'Integracion SAMIE';

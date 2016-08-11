@@ -19,14 +19,14 @@
  *
  * Sample cron entry:
  * # 5 minutes past 4am
- * 5 4 * * * $sudo -u www-data /usr/bin/php /var/www/moodle/enrol/sieintegration/cli/sync.php
+ * 5 4 * * * $sudo -u www-data /usr/bin/php /var/www/moodle/enrol/samieintegration/cli/sync.php
  *
  * Notes:
  *   - it is required to use the web server account when executing PHP CLI scripts
  *   - you need to change the "www-data" to match the apache user account
  *   - use "su" if "sudo" not available
  *
- * @package    enrol_sieintegration
+ * @package    enrol_samieintegration
  * @copyright  2010 Petr Skoda {@link http://skodak.org}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -46,25 +46,25 @@ if ($unrecognized) {
 
 if ($options['help']) {
     $help = "Execute enrol sync with external database.
-    The enrol_sieintegration plugin must be enabled and properly configured.
+    The enrol_samieintegration plugin must be enabled and properly configured.
 
     Options:
     -v, --verbose         Print verbose progress information
     -h, --help            Print out this help
 
     Example:
-    \$ sudo -u www-data /usr/bin/php enrol/sieintegration/cli/sync.php
+    \$ sudo -u www-data /usr/bin/php enrol/samieintegration/cli/sync.php
 
     Sample cron entry:
     # 5 minutes past 4am
-    5 4 * * * sudo -u www-data /usr/bin/php /var/www/moodle/enrol/sieintegration/cli/sync.php";
+    5 4 * * * sudo -u www-data /usr/bin/php /var/www/moodle/enrol/samieintegration/cli/sync.php";
 
     echo $help;
     die;
 }
 
-if (!enrol_is_enabled('sieintegration')) {
-    cli_error('enrol_sieintegration plugin is disabled, synchronization stopped', 2);
+if (!enrol_is_enabled('samieintegration')) {
+    cli_error('enrol_samieintegration plugin is disabled, synchronization stopped', 2);
 }
 
 if (empty($options['verbose'])) {
@@ -73,6 +73,6 @@ if (empty($options['verbose'])) {
     $trace = new text_progress_trace();
 }
 
-$sieintegration = enrol_get_plugin('sieintegration');
-$sieintegration->start_sync();
+$samieintegration = enrol_get_plugin('samieintegration');
+$samieintegration->start_sync();
 exit;
